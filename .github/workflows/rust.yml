@@ -18,17 +18,11 @@ jobs:
       - name: Build release
         run: cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: Verify binary
+      - name: Copy binary
         shell: pwsh
         run: |
           $exe = Get-ChildItem -Path "target\x86_64-pc-windows-msvc\release" -Filter *.exe | Select-Object -First 1
-          if ($exe) {
-            Get-Item $exe.FullName | Format-List Name, Length, FullName
-            Copy-Item $exe.FullName "RustPotato.exe"
-          } else {
-            Write-Error "No .exe found in target"
-            exit 1
-          }
+          Copy-Item $exe.FullName "RustPotato.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
