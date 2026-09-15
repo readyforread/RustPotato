@@ -1,0 +1,58 @@
+name: Build RustPotato
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build release
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Verify binary
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path "target\x86_64-pc-windows-msvc\release" -Filter *.exe | Select-Object -First 1
+          if ($exe) {
+            Get-Item $exe.FullName | Format-List Name, Length, FullName
+            Copy-Item $exe.FullName "RustPotato.exe"
+          } else {
+            Write-Error "No .exe found in target"
+            exit 1
+          }
+
+      - name: Check no forbidden strings
+        shell: pwsh
+        run: |
+          $bytes = [System.IO.File]::ReadAllBytes("RustPotato.exe")
+          $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+          $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+          $combined = $ascii + $unicode
+          $patterns = @('RustPotato', 'GodPotato', 'SigmaPotato')
+          $found = @()
+          foreach ($p in $patterns) {
+            if ($combined -match [regex]::Escape($p)) {
+              $found += $p
+            }
+          }
+          if ($found.Count -gt 0) {
+            Write-Error "Found forbidden strings: $($found -join ', ')"
+            exit 1
+          } else {
+            Write-Host "Clean"
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustpotato
+          path: RustPotato.exe
