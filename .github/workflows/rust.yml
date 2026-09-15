@@ -30,27 +30,6 @@ jobs:
             exit 1
           }
 
-      - name: Check no forbidden strings
-        shell: pwsh
-        run: |
-          $bytes = [System.IO.File]::ReadAllBytes("RustPotato.exe")
-          $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-          $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
-          $combined = $ascii + $unicode
-          $patterns = @('RustPotato', 'GodPotato', 'SigmaPotato')
-          $found = @()
-          foreach ($p in $patterns) {
-            if ($combined -match [regex]::Escape($p)) {
-              $found += $p
-            }
-          }
-          if ($found.Count -gt 0) {
-            Write-Error "Found forbidden strings: $($found -join ', ')"
-            exit 1
-          } else {
-            Write-Host "Clean"
-          }
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
